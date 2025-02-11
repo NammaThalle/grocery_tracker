@@ -170,6 +170,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-credentials.json
-gemini_api_key.txt
 *.jpg
