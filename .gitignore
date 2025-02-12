@@ -172,4 +172,5 @@ cython_debug/
 
 gemini_api_key.txt
 google_api_credentials.json
+telegram_bot_token.txt
 *.jpg
