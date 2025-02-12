@@ -1,43 +1,52 @@
 import os
 import re
 import json
+from utils.logging import logger
 
 import PIL.Image
-
 from google import genai
 
-# gemini_api_key = os.environ.get("GEMINI_API_KEY")
-gemini_api_key = "gemini_api_key.txt"
+# Load Gemini API key from secret file (using environment variable for path)
+# gemini_api_key_file = os.environ.get("GEMINI_API_KEY_FILE")
+# TODO: Remove this implementation and stick to environemnt variables
+gemini_api_key_file = "gemini_api_key.txt"
 
-# Load Gemini API key from secret file
-if gemini_api_key:
-    try:
-        with open(gemini_api_key, "r") as f:
-            gemini_api_key = f.read().strip()  # Read and remove any whitespace
-        print("Gemini API key loaded from secret.")
-        client = genai.Client(api_key=gemini_api_key)
-    except FileNotFoundError:
-        print("Gemini API key file not found. Did you create the secret and mount it?")
-    except Exception as e:
-        print(f"Error reading Gemini API key: {e}")
-else:
-    print("gemini_api_key environment variable not set.")
+if not gemini_api_key_file:
+    logger.error("GEMINI_API_KEY_FILE environment variable not set.")
+    exit(1)  # Exit with error code
+
+try:
+    with open(gemini_api_key_file, "r") as f:
+        gemini_api_key = f.read().strip()
+    logger.info("Gemini API key loaded from secret.")
+    client = genai.Client(api_key=gemini_api_key)
+except FileNotFoundError:
+    logger.error("Gemini API key file not found. Did you create the secret and mount it?")
+    exit(1)
+except Exception as e:
+    logger.exception("Error reading Gemini API key:")  # Log the full exception details
+    exit(1)
 
 def perform_ocr_gemini(image_path):
     """Performs OCR using Gemini's vision capabilities."""
     try:
         encoded_image = PIL.Image.open(image_path)
+        logger.info("Image loaded successfully.")
 
+        logger.info("Performing OCR...")
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=["Extract the text from this receipt:", encoded_image]
         )
 
         extracted_text = response.text
+        logger.info("OCR completed successfully.")
+
         return extracted_text
 
     except Exception as e:
-        print(f"Gemini OCR Error: {e}")
+        logger.exception(f"OCR Error:")  # Log the exception
+        logger.exception(e)
         return None
 
 prompt = '''
@@ -61,37 +70,55 @@ Here is the OCR text of the receipt:
 '''
 
 if client is None:
-    print("Gemini client not initialized. Exiting.")
-    exit()
+    logger.error("Gemini client not initialized. Exiting.")
+    exit(1)
 
-OCR = perform_ocr_gemini("receipt_1.jpg")
+def extract_and_save_data(image_path, output_file="receipt_data.json"):
+    """Extracts data from a receipt image and saves it to a JSON file."""
+    ocr_text = perform_ocr_gemini(image_path)
 
-response = client.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=prompt + OCR,
-)
+    if ocr_text is None:
+        logger.error("OCR failed.")
+        return False  # Indicate failure
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt + ocr_text,
+        )
+        output = response.text
+        logger.info("Data extraction completed successfully.")
+    except Exception as e:
+        logger.exception(f"Could not convert response to JSON:")
+        logger.exception(e)
+        return False
 
-output = response.text
-try:
-    # 1. Clean the output (using regex to find JSON object)
-    match = re.search(r"\{.*\}", output, re.DOTALL) # Find JSON object
-    if match:
+    try:
+        match = re.search(r"\{.*\}", output, re.DOTALL)
+        if not match:
+            logger.error("Could not find JSON object in Gemini output.")
+            return False
+
         cleaned_output = match.group(0).strip()
+        data = json.loads(cleaned_output)
+
+        with open(output_file, "w") as f:
+            json.dump(data, f, indent=4)
+        logger.info(f"Data saved to {output_file}")
+        return True
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON Decode Error: {e}")
+        logger.error(f"Raw Output: {output}")
+        logger.error(f"Cleaned Output: {cleaned_output if 'cleaned_output' in locals() else 'N/A'}") # Conditional logging
+        return False
+    except Exception as e:
+        logger.exception("An unexpected error occurred:") # Log the exception
+        return False
+
+if __name__ == "__main__": 
+    image_path = "receipt_1.jpg"
+    if extract_and_save_data(image_path):
+        logger.info("Receipt processing completed successfully.")
     else:
-        print("Could not find JSON object in Gemini output.")
-
-    # 2. Robust JSON parsing
-    data = json.loads(cleaned_output)
+        logger.error("Receipt processing failed.")
     
-    # 3. Save to JSON file
-    with open("receipt_data.json", "w") as f:
-        json.dump(data, f, indent=4)  # indent for pretty formatting
-    print("Data saved to receipt_data.json")
-
-except json.JSONDecodeError as e:
-    print(f"JSON Decode Error: {e}")
-    print("Raw Output:", output)  # Print for debugging
-    print("Cleaned Output:", cleaned_output) # Print for debugging
-
-except Exception as e: # Catch other potential errors
-    print(f"An unexpected error occurred: {e}")
