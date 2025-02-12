@@ -2,3 +2,4 @@ google-genai
 pillow
 singleton-decorator
 google-api-python-client
+python-telegram-bot
