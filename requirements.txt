@@ -1,3 +1,4 @@
 google-genai
 pillow
 singleton-decorator
+google-api-python-client

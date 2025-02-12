@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./src /app/
 
 # Specify the command to run when the container starts
-ENTRYPOINT ["python", "receipt_OCR.py"]
+ENTRYPOINT ["python", "grocery_ocr.py"]
