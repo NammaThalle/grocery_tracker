@@ -171,4 +171,5 @@ cython_debug/
 .pypirc
 
 gemini_api_key.txt
+google_api_credentials.json
 *.jpg
