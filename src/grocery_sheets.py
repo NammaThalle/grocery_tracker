@@ -84,7 +84,7 @@ def write_to_sheet(data):
 
     try:      
         credentials = service_account.Credentials.from_service_account_info(config.get('GOOGLE_SERVICE_INFO'))
-        service = build('sheets', 'v4', credentials=credentials)
+        service = build('sheets', 'v4', credentials=credentials, cache_discovery=False)
 
         if not initialize_sheet(service, config.get('SHEET_NAME')): # Initialize headers and table
             return False

@@ -28,7 +28,7 @@ class Logger:
         logging.getLogger("werkzeug").setLevel(logging.ERROR)
         logging.getLogger("flask.cli").setLevel(logging.ERROR)
         logging.getLogger("google_genai.models").setLevel(logging.ERROR)
-        logging.getLogger("oauth2client").setLevel(logging.ERROR)
+        logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
 
     def get_logger(self):
         """Return the logger instance."""
