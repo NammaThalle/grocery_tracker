@@ -2,6 +2,7 @@ import os
 import re
 import json
 
+from utils.config import Config
 from utils.logging import logger
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -9,6 +10,8 @@ from googleapiclient.discovery import build
 CREDENTIALS_FILE = "google_api_credentials.json"
 SPREADSHEET_ID = "1qyWIc1Q0GU5KjDUSjdDnia6vSQV1GFlmYh-ZrX1Wp-0"
 SHEET_NAME = "Sheet1"
+
+config = Config()
 
 def initialize_sheet(service, sheet_name):
     """Creates headers and optionally a named range (table) in the sheet."""
@@ -83,8 +86,8 @@ def initialize_sheet(service, sheet_name):
 def write_to_sheet(data):
     """Writes the extracted grocery data to a Google Sheet."""
 
-    try:
-        credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE)
+    try:      
+        credentials = service_account.Credentials.from_service_account_info(config.get('GOOGLE_SERVICE_INFO'))
         service = build('sheets', 'v4', credentials=credentials)
 
         if not initialize_sheet(service, SHEET_NAME): # Initialize headers and table
