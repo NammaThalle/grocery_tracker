@@ -1,32 +1,38 @@
 import logging
-import os
 from singleton_decorator import singleton
 
 @singleton
 class Logger:
     def __init__(self):
         """Initialize the singleton logger instance."""
-        self.logger = logging.getLogger("GlobalLogger")
+        self._logger = logging.getLogger("GlobalLogger")
+        self._logger.setLevel(logging.INFO)
+        self._logger.propagate = False  # Prevent duplicate log entries from root
 
         # Define log format
-        FORMAT = logging.Formatter(fmt="%(asctime)s - %(levelname).3s - %(filename)s:%(lineno).3d - %(message)s", 
-                                   datefmt="%Y-%m-%d %H:%M:%S")
+        FORMAT = logging.Formatter(
+            fmt="%(asctime)s - %(levelname).3s - %(filename)s:%(lineno).3d - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
 
-        # Configure logging only once
-        logging.basicConfig(level=logging.INFO)
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(FORMAT)
 
-        def log_filter(record):
-            """Filter out logs containing 'AFC'."""
-            return "AFC" not in record.getMessage()
+        # console_handler.addFilter(log_filter)
+        self._logger.addHandler(console_handler)
 
-        # Apply the filter
-        for handler in logging.getLogger().handlers:
-            handler.addFilter(log_filter)
-            handler.setFormatter(FORMAT)
-        
+        # Suppress verbose logs globally
+        logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
+        logging.getLogger("flask.cli").setLevel(logging.ERROR)
+        logging.getLogger("google_genai.models").setLevel(logging.ERROR)
+        logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
+
     def get_logger(self):
         """Return the logger instance."""
-        return self.logger
+        return self._logger
 
 # Create a global logger instance
 logger = Logger().get_logger()
