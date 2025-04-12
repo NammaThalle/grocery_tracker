@@ -7,10 +7,6 @@ from utils.logging import logger
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-CREDENTIALS_FILE = "google_api_credentials.json"
-SPREADSHEET_ID = "1qyWIc1Q0GU5KjDUSjdDnia6vSQV1GFlmYh-ZrX1Wp-0"
-SHEET_NAME = "Sheet1"
-
 config = Config()
 
 def initialize_sheet(service, sheet_name):
@@ -19,13 +15,13 @@ def initialize_sheet(service, sheet_name):
         # Check if headers already exist (optional, but good practice)
         header_range = f"{sheet_name}!A1:F1"  # Adjust range if you have more columns
         header_values = service.spreadsheets().values().get(
-            spreadsheetId=SPREADSHEET_ID, range=header_range).execute().get('values', [])
+            spreadsheetId=config.get('SPREADSHEET_ID'), range=header_range).execute().get('values', [])
 
         if not header_values:  # Create headers if they don't exist
             header_values = [["Original Item Name", "Item Name", "Quantity", "Unit", "Price", "Value"]]
             header_body = {'values': header_values}
             service.spreadsheets().values().update(
-                spreadsheetId=SPREADSHEET_ID, range=header_range,
+                spreadsheetId=config.get('SPREADSHEET_ID'), range=header_range,
                 valueInputOption='USER_ENTERED', body=header_body).execute()
             logger.info("Headers created in Google Sheet.")
         else:
@@ -35,7 +31,7 @@ def initialize_sheet(service, sheet_name):
         # named_range_name = "grocery_tracker"
 
         # # 1. Get existing named ranges (to check if it exists)
-        # named_ranges_response = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        # named_ranges_response = service.spreadsheets().get(spreadsheetId=config.get('SPREADSHEET_ID')).execute()
         # named_ranges = named_ranges_response.get('namedRanges', [])
 
         # named_range_id = None
@@ -58,7 +54,7 @@ def initialize_sheet(service, sheet_name):
 
         # # 3. Get the current number of rows (to update endRowIndex)
         # values_response = service.spreadsheets().values().get(
-        #     spreadsheetId=SPREADSHEET_ID, range=f"{sheet_name}!A:F").execute()
+        #     spreadsheetId=config.get('SPREADSHEET_ID'), range=f"{sheet_name}!A:F").execute()
         # num_rows = len(values_response.get('values', [])) + 1 if values_response.get('values') else 2
 
         # request_body["range"]["endRowIndex"] = num_rows
@@ -67,14 +63,14 @@ def initialize_sheet(service, sheet_name):
         # if named_range_id:
         #     # Update
         #     service.spreadsheets().namedranges().update(
-        #         spreadsheetId=SPREADSHEET_ID,
+        #         spreadsheetId=config.get('SPREADSHEET_ID'),
         #         namedRangeId=named_range_id,
         #         body=request_body).execute()
         #     logger.info(f"Named range '{named_range_name}' updated.")
         # else:
         #     # Create
         #     service.spreadsheets().namedranges().create(
-        #         spreadsheetId=SPREADSHEET_ID,
+        #         spreadsheetId=config.get('SPREADSHEET_ID'),
         #         body=request_body).execute()
         #     logger.info(f"Named range '{named_range_name}' created.")
 
@@ -90,7 +86,7 @@ def write_to_sheet(data):
         credentials = service_account.Credentials.from_service_account_info(config.get('GOOGLE_SERVICE_INFO'))
         service = build('sheets', 'v4', credentials=credentials)
 
-        if not initialize_sheet(service, SHEET_NAME): # Initialize headers and table
+        if not initialize_sheet(service, config.get('SHEET_NAME')): # Initialize headers and table
             return False
         
         # Convert the data to a list of lists (required by the Sheets API)
@@ -111,7 +107,7 @@ def write_to_sheet(data):
         }
 
         result = service.spreadsheets().values().append(
-            spreadsheetId=SPREADSHEET_ID, range=f"{SHEET_NAME}!A:F",  # Adjust range as needed
+            spreadsheetId=config.get('SPREADSHEET_ID'), range=f"{config.get('SHEET_NAME')}!A:F",  # Adjust range as needed
             valueInputOption='USER_ENTERED', body=body).execute()
 
         logger.info(f"{len(values)} rows appended to Google Sheet.")
