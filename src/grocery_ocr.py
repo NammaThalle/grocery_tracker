@@ -1,31 +1,20 @@
 import os
 import re
 import json
+from utils.config import Config
 from utils.logging import logger
 
 import PIL.Image
 from google import genai
 
-# Load Gemini API key from secret file (using environment variable for path)
-# gemini_api_key_file = os.environ.get("GEMINI_API_KEY_FILE")
-# TODO: Remove this implementation and stick to environemnt variables
-gemini_api_key_file = "gemini_api_key.txt"
+config = Config()
+gemini_api_key = config.get("GEMINI_API_KEY")
 
-if not gemini_api_key_file:
+if not gemini_api_key:
     logger.error("GEMINI_API_KEY_FILE environment variable not set.")
-    exit(1)  # Exit with error code
-
-try:
-    with open(gemini_api_key_file, "r") as f:
-        gemini_api_key = f.read().strip()
-    logger.info("Gemini API key loaded from secret.")
-    client = genai.Client(api_key=gemini_api_key)
-except FileNotFoundError:
-    logger.error("Gemini API key file not found. Did you create the secret and mount it?")
-    exit(1)
-except Exception as e:
-    logger.exception("Error reading Gemini API key:")  # Log the full exception details
-    exit(1)
+    exit(1)  
+    
+client = genai.Client(api_key=gemini_api_key)
 
 def perform_ocr_gemini(image_path):
     """Performs OCR using Gemini's vision capabilities."""
@@ -50,7 +39,9 @@ def perform_ocr_gemini(image_path):
         return None
 
 prompt = '''
-You are a receipt data extraction expert.  You will receive the OCR output of a grocery receipt.  Your task is to extract the relevant information and format it as a JSON object.  The JSON object should have the following keys (and ONLY these keys):
+You are a receipt data extraction expert. You will receive the OCR output of a grocery receipt. 
+Your task is to extract the relevant information and format it as a JSON object.  
+The JSON object should have the following keys (and ONLY these keys):
 *   `store_name`: The name of the grocery store.
 *   `store_location`: The location of the grocery store (city, state, etc.).
 *   `purchase_date`: The date of purchase in YYYY-MM-DD format.
@@ -63,17 +54,20 @@ You are a receipt data extraction expert.  You will receive the OCR output of a 
     *   `price`: The price per unit of the item.
     *   `value`: The total value of the item (quantity * price).
 
-Do not include any other information in the JSON object.  If a field is not present in the OCR output, leave it blank (but include the key).  If you are unsure of the value for a field, leave it blank.  Do your best to infer units (e.g., from "MILK-500" infer "ml").
+Do not include any other information in the JSON object.  
+If a field is not present in the OCR output, leave it blank (but include the key).  
+If you are unsure of the value for a field, leave it blank. 
+Do your best to infer units (e.g., from "MILK-500" infer "ml").
 
 Here is the OCR text of the receipt:
 
 '''
 
-if client is None:
-    logger.error("Gemini client not initialized. Exiting.")
-    exit(1)
-
 def extract_and_save_data(image_path, output_file="receipt_data.json"):
+    if client is None:
+        logger.error("Gemini client not initialized. Exiting.")
+        exit(1)
+        
     """Extracts data from a receipt image and saves it to a JSON file."""
     ocr_text = perform_ocr_gemini(image_path)
 
@@ -109,10 +103,10 @@ def extract_and_save_data(image_path, output_file="receipt_data.json"):
     except json.JSONDecodeError as e:
         logger.error(f"JSON Decode Error: {e}")
         logger.error(f"Raw Output: {output}")
-        logger.error(f"Cleaned Output: {cleaned_output if 'cleaned_output' in locals() else 'N/A'}") # Conditional logging
+        logger.error(f"Cleaned Output: {cleaned_output if 'cleaned_output' in locals() else 'N/A'}") 
         return False
     except Exception as e:
-        logger.exception("An unexpected error occurred:") # Log the exception
+        logger.exception("An unexpected error occurred:") 
         return False
 
 if __name__ == "__main__": 

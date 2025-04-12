@@ -1,5 +1,5 @@
 clear
 
 docker run -it --rm \
-    -v $(pwd)/src/:/app \
+    --env-file .env \
     grocery_tracker
