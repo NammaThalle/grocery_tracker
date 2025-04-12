@@ -5,29 +5,17 @@ import json
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 
-from grocery_ocr import extract_and_save_data  # Import from your module
+from utils.config import Config
+from grocery_ocr import extract_and_save_data 
 from grocery_sheets import write_to_sheet
+
+config = Config()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Telegram Bot Token (from BotFather)
-# BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-BOT_TOKEN_FILE = "telegram_bot_token.txt"
-
-# Load Telegram Bot Token from secret file
-try:
-    with open(BOT_TOKEN_FILE, "r") as f:
-        BOT_TOKEN = f.read().strip()
-except FileNotFoundError:
-    logger.error(f"Telegram bot token file not found: {BOT_TOKEN_FILE}")
-    exit(1)
-except Exception as e:
-    logger.error(f"Error reading Telegram bot token from file: {e}")
-    exit(1)
-
-if not BOT_TOKEN:
+if not config.get("TELEGRAM_BOT_TOKEN"):
     logger.error("TELEGRAM_BOT_TOKEN environment variable not set.")
     exit(1)
 
@@ -65,7 +53,7 @@ async def help_command(update: Update, context: CallbackContext):
     await update.message.reply_text("Send me a photo of your grocery receipt, and I'll extract the data and save it to your Google Sheet.")
 
 def main():
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application = ApplicationBuilder().token(config.get("TELEGRAM_BOT_TOKEN")).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.PHOTO, process_receipt))
