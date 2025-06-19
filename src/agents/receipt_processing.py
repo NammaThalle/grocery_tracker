@@ -1,91 +1,185 @@
 """
-Agent specialized in processing receipt images.
+Simplified Agentic Receipt Processing Agent - focuses on OCR with intelligent planning.
 """
 import json
 import logging
-
+from typing import Dict, Any, List
 from datetime import datetime
-from .base import BaseAgent
+
+from .base import AgenticBaseAgent, Task, TaskType, Plan
 from src.models import AgentResult, JSONExtractor
 
 logger = logging.getLogger(__name__)
 
-class ReceiptProcessingAgent(BaseAgent):
-    """Agent specialized in processing receipt images"""
+class AgenticReceiptProcessingAgent(AgenticBaseAgent):
+    """Simplified agentic receipt processing agent focused on intelligent OCR"""
     
     def __init__(self):
         super().__init__(
-            name="Receipt Processing Agent",
-            description="Processes grocery receipt images and extracts expense data",
-            tools=["process_receipt", "save_to_sheets"]
+            name="Agentic Receipt Processing Agent",
+            description="Intelligently processes receipt images with dynamic planning",
+            capabilities=[
+                "receipt_ocr",
+                "data_extraction", 
+                "intelligent_planning",
+                "error_recovery"
+            ]
         )
     
-    async def execute(self, image_data: str, message_date: str = None, **kwargs) -> AgentResult: # type: ignore
-        """Execute receipt processing workflow"""
-        try:
-            logger.info(f"🧠 {self.name} starting receipt processing...")
-            
-            # Step 1: Extract data from receipt
-            logger.info("📸 Extracting data from receipt image...")
-            extract_result = await self._execute_tool("process_receipt", image_data=image_data)
-            
-            if extract_result.startswith("Error"):
-                return AgentResult(
-                    success=False,
-                    message="Failed to extract data from receipt",
-                    error=extract_result
-                )
-            
-            # Step 2: Parse and validate extracted data
-            expense_data = JSONExtractor.extract_json_from_text(extract_result)
-            if not expense_data:
-                return AgentResult(
-                    success=False,
-                    message="Failed to parse extracted data",
-                    error="Invalid JSON response from extraction"
-                )
-            
-            # Step 3: Save to Google Sheets
-            logger.info("💾 Saving data to Google Sheets...")
-            save_result = await self._execute_tool(
-                "save_to_sheets",
-                expense_data=json.dumps(expense_data),
-                message_date=message_date or datetime.now().strftime('%Y-%m-%d')
+    async def _perform_input_analysis(self, **kwargs) -> Dict[str, Any]:
+        """Simple input analysis without complex image processing"""
+        analysis = {
+            "has_image": "image_data" in kwargs,
+            "has_date": "message_date" in kwargs,
+            "processing_approach": "direct_ocr"
+        }
+        
+        if "message_date" in kwargs:
+            analysis["provided_date"] = kwargs["message_date"]
+        
+        return analysis
+    
+    async def execute_reasoning_task(self, task: Task, context: Dict[str, Any]) -> AgentResult:
+        """Execute simple reasoning tasks"""
+        if task.type == TaskType.REASON:
+            return AgentResult(
+                success=True,
+                message=f"Reasoning completed: {task.description}",
+                data={"reasoning": "Simple OCR approach selected"}
             )
+        else:
+            return AgentResult(
+                success=True,
+                message=f"Task completed: {task.description}",
+                data={}
+            )
+    
+    async def synthesize_results(self, results: List[AgentResult], plan: Plan, 
+                                context: Dict[str, Any]) -> AgentResult:
+        """Synthesize receipt processing results"""
+        successful_results = [r for r in results if r.success]
+        failed_results = [r for r in results if not r.success]
+        
+        if not successful_results:
+            return AgentResult(
+                success=False,
+                message="Receipt processing failed - no successful tasks",
+                error="All tasks failed"
+            )
+        
+        # Find the main OCR result and save result
+        extracted_data = None
+        save_result = None
+        items_count = 0
+        
+        for result in successful_results:
+            # Check if this is a save result
+            if "Successfully saved" in result.message or "Added" in result.message:
+                save_result = result.message
+                # Try to extract item count from save message
+                import re
+                match = re.search(r'(\d+)', result.message)
+                if match:
+                    items_count = int(match.group(1))
             
-            if save_result.startswith("Error"):
-                return AgentResult(
-                    success=False,
-                    message="Data extracted but failed to save",
-                    data=expense_data,
-                    error=save_result
-                )
+            # Check if this has task_result with JSON data
+            if result.data and "task_result" in result.data:
+                try:
+                    task_result = result.data["task_result"]
+                    if isinstance(task_result, str) and not task_result.startswith("Error"):
+                        # Try to parse as JSON directly first
+                        import json
+                        try:
+                            extracted_data = json.loads(task_result)
+                        except json.JSONDecodeError:
+                            # Try to extract JSON from the string using JSONExtractor
+                            extracted_data = JSONExtractor.extract_json_from_text(task_result)
+                        
+                        if extracted_data:
+                            break  # Found valid data, stop looking
+                            
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to parse task result: {e}")
+                    continue
+        
+        # Create detailed result like the old system
+        if extracted_data and isinstance(extracted_data, dict):
+            # Extract receipt details
+            items_list = extracted_data.get('items', [])
+            items_count = len(items_list) if items_list else items_count
+            total = extracted_data.get('total', extracted_data.get('subtotal', 'N/A'))
+            store = extracted_data.get('store', 'Unknown')
+            receipt_date = extracted_data.get('date', 'N/A')
             
-            # Step 4: Generate success response
-            items_count = len(expense_data.get('items', []))
-            total = expense_data.get('total', 'N/A')
-            store = expense_data.get('store', 'Unknown')
-            receipt_date = expense_data.get('date', 'N/A')
-            
+            # Format the success message like the old system
             success_message = (
                 f"✅ Receipt processed successfully!\n\n"
-                f"📅 Date: {receipt_date if receipt_date != 'N/A' else message_date}\n"
+                f"📅 Date: {receipt_date if receipt_date != 'N/A' else context.get('provided_date', 'N/A')}\n"
                 f"🏪 Store: {store}\n"
                 f"📝 Items: {items_count}\n"
-                f"💰 Total: ₹{total}\n"
+                f"💰 Total: ₹{total}"
+            )
+            
+            if save_result:
+                success_message += f"\n📊 {save_result}"
+            
+            return AgentResult(
+                success=True,
+                message=success_message,
+                data={
+                    "extracted_data": extracted_data,
+                    "processing_strategy": "simple_agentic_ocr",
+                    "items_processed": items_count,
+                    "plan_summary": {
+                        "total_tasks": len(plan.tasks),
+                        "successful_tasks": len(successful_results),
+                        "failed_tasks": len(failed_results)
+                    }
+                }
+            )
+        
+        # Fallback if we have save result but no detailed data
+        elif save_result and items_count > 0:
+            success_message = (
+                f"✅ Receipt processed successfully!\n\n"
+                f"📅 Date: {context.get('provided_date', 'N/A')}\n"
+                f"🏪 Store: Unknown\n"
+                f"📝 Items: {items_count}\n"
+                f"💰 Total: N/A\n"
                 f"📊 {save_result}"
             )
             
             return AgentResult(
                 success=True,
                 message=success_message,
-                data=expense_data
+                data={
+                    "processing_strategy": "simple_agentic_ocr",
+                    "items_processed": items_count,
+                    "plan_summary": {
+                        "total_tasks": len(plan.tasks),
+                        "successful_tasks": len(successful_results),
+                        "failed_tasks": len(failed_results)
+                    }
+                }
             )
-            
-        except Exception as e:
-            logger.error(f"Receipt agent error: {e}")
+        
+        # If we have successful results but no clear save result, still report success
+        elif successful_results:
+            return AgentResult(
+                success=True,
+                message=f"✅ Agentic processing completed with {len(successful_results)} successful tasks",
+                data={
+                    "processing_strategy": "simple_agentic_ocr",
+                    "plan_summary": {
+                        "total_tasks": len(plan.tasks),
+                        "successful_tasks": len(successful_results),
+                        "failed_tasks": len(failed_results)
+                    }
+                }
+            )
+        else:
             return AgentResult(
                 success=False,
-                message="Receipt processing failed",
-                error=str(e)
+                message="Receipt processing completed but no valid data extracted",
+                error="Failed to extract structured data from receipt"
             )

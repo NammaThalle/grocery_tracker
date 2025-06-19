@@ -1,12 +1,12 @@
 """
-Main entry point for the AI-Powered Grocery Tracking System.
+Main entry point for the Agentic AI-Powered Grocery Tracking System.
 """
 import logging
 import asyncio
 
 from pathlib import Path
 from config import config
-from bot import TelegramBotHandler
+from bot import AgenticTelegramBotHandler
 from src.services import GoogleSheetsService
 
 def setup_logging():
@@ -23,7 +23,7 @@ def setup_logging():
         level=getattr(logging, config.log_level.upper()),
         format=log_format,
         handlers=[
-            logging.FileHandler(logs_dir / "grocery_bot.log"),
+            logging.FileHandler(logs_dir / "agentic_grocery_bot.log"),
             logging.StreamHandler()
         ]
     )
@@ -34,10 +34,10 @@ def setup_logging():
     logging.getLogger("google").setLevel(logging.WARNING)
     
     logger = logging.getLogger(__name__)
-    logger.info("📝 Logging system initialized")
+    logger.info("📝 Agentic logging system initialized")
     return logger
 
-async def initialize_services():                                                                                                                                 
+async def initialize_services():
     """Initialize all required services"""
     logger = logging.getLogger(__name__)
     
@@ -47,7 +47,7 @@ async def initialize_services():
         sheets_service = GoogleSheetsService()
         await sheets_service.create_headers_if_needed()
         
-        logger.info("✅ All services initialized successfully")
+        logger.info("✅ All agentic services initialized successfully")
         return True
         
     except Exception as e:
@@ -59,11 +59,18 @@ def print_startup_banner():
     banner = """
     ╔══════════════════════════════════════════════════════════════╗
     ║                                                              ║
-    ║           🤖 AI-POWERED GROCERY TRACKING SYSTEM 🤖           ║
+    ║         🧠 AGENTIC AI-POWERED GROCERY TRACKING SYSTEM 🧠     ║
     ║                                                              ║
-    ║  🔬 Powered by: LangChain Agents + Gemini 2.0 + Python     ║
-    ║  🏗️  Architecture: Modular, Scalable, Production-Ready      ║
-    ║  🎯 Capabilities: Smart Receipt OCR + NLP Text Processing   ║
+    ║  🤖 Powered by: Multi-Agent AI + Gemini 2.0 + Python       ║
+    ║  🏗️  Architecture: Agentic, Self-Improving, Collaborative   ║
+    ║  🎯 Capabilities: Dynamic Planning + Reasoning + Learning   ║
+    ║                                                              ║
+    ║  🧠 AGENTIC FEATURES:                                        ║
+    ║     • Intelligent Planning & Reasoning                       ║
+    ║     • Dynamic Tool Selection                                 ║
+    ║     • Multi-Agent Collaboration                              ║
+    ║     • Learning from Experience                               ║
+    ║     • Adaptive Error Recovery                                ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     """
@@ -73,17 +80,25 @@ def print_system_info():
     """Print system configuration information"""
     logger = logging.getLogger(__name__)
     
-    logger.info("🔧 System Configuration:")
-    logger.info(f"   • Model: {config.gemini_model}")
+    logger.info("🔧 Agentic System Configuration:")
+    logger.info(f"   • AI Model: {config.gemini_model}")
     logger.info(f"   • Max Retries: {config.max_retries}")
     logger.info(f"   • Log Level: {config.log_level}")
     logger.info(f"   • Debug Mode: {'Enabled' if config.enable_debug else 'Disabled'}")
     logger.info(f"   • Agent Timeout: {config.agent_timeout}s")
+    logger.info(f"   • Learning: {'Enabled' if config.enable_analytics else 'Disabled'}")
     
-    logger.info("📊 Data Pipeline:")
-    logger.info("   • Receipt Agent: Image → Gemini Vision → JSON → Sheets")
-    logger.info("   • Text Agent: Text → Gemini NLP → JSON → Sheets")
+    logger.info("🧠 Agentic AI Pipeline:")
+    logger.info("   • Input Analysis → Dynamic Planning → Tool Selection")
+    logger.info("   • Multi-Agent Coordination → Adaptive Execution")
+    logger.info("   • Result Synthesis → Learning & Memory Update")
     logger.info("   • Format: Date|Original|Clean|Pieces|Unit|Total|Price|Value")
+    
+    logger.info("🤖 Agent Capabilities:")
+    logger.info("   • Receipt Agent: Vision Analysis + Quality Assessment + Adaptation")
+    logger.info("   • Text Agent: NLP + Context Understanding + Ambiguity Resolution")
+    logger.info("   • Tool Registry: Dynamic Selection + Performance Learning")
+    logger.info("   • Agent Manager: Intelligent Routing + Collaboration + Optimization")
 
 def main():
     """Main application entry point - synchronous version"""
@@ -96,12 +111,12 @@ def main():
         print_system_info()
         
         # Validate configuration
-        logger.info("🔍 Validating configuration...")
+        logger.info("🔍 Validating agentic system configuration...")
         config.validate()
         logger.info("✅ Configuration validation successful")
         
         # Initialize services in a separate event loop
-        logger.info("🚀 Initializing system services...")
+        logger.info("🚀 Initializing agentic system services...")
         
         # Create new event loop for initialization
         init_loop = asyncio.new_event_loop()
@@ -111,7 +126,7 @@ def main():
             # Initialize services
             success = init_loop.run_until_complete(initialize_services())
             if not success:
-                logger.error("❌ Failed to initialize services")
+                logger.error("❌ Failed to initialize agentic services")
                 return
         finally:
             # Close initialization loop
@@ -119,32 +134,33 @@ def main():
             # Clear the event loop so bot can create its own
             asyncio.set_event_loop(None)
         
-        # Start the bot
-        logger.info("🤖 Starting Telegram Bot with Agent System...")
-        bot_handler = TelegramBotHandler()
+        # Start the agentic bot
+        logger.info("🤖 Starting Agentic Telegram Bot with Multi-Agent System...")
+        bot_handler = AgenticTelegramBotHandler()
         
-        logger.info("🎯 System ready! Bot is now active and waiting for messages...")
-        logger.info("📱 Send receipt photos or expense text to your Telegram bot")
+        logger.info("🎯 Agentic AI System ready! Bot is now active and learning...")
+        logger.info("📱 Send receipt photos or expense text to experience agentic AI processing")
+        logger.info("🧠 System will learn and improve with each interaction")
         
         # Run the bot (blocking call) - this handles its own event loop
         bot_handler.run()
         
     except KeyboardInterrupt:
-        logger.info("🛑 Application stopped by user (Ctrl+C)")
+        logger.info("🛑 Agentic application stopped by user (Ctrl+C)")
     except Exception as e:
-        logger.error(f"❌ Application failed to start: {e}")
+        logger.error(f"❌ Agentic application failed to start: {e}")
         if config.enable_debug:
             import traceback
             logger.error("🐛 Debug traceback:")
             logger.error(traceback.format_exc())
     finally:
-        logger.info("👋 Grocery Tracking System shutdown complete")
+        logger.info("👋 Agentic Grocery Tracking System shutdown complete")
 
 if __name__ == "__main__":
     """Entry point when running the script directly"""
     try:
         main()  # Call synchronous main function
     except KeyboardInterrupt:
-        print("\n👋 Goodbye!")
+        print("\n👋 Goodbye from Agentic AI!")
     except Exception as e:
         print(f"❌ Fatal error: {e}")

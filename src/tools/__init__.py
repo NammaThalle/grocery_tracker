@@ -1,19 +1,32 @@
 """
-Tools package for the Grocery Bot system.
+Agentic Tools package for the AI Grocery Bot system.
 
-This package contains all the tools used by agents to perform specific tasks.
-Each tool is responsible for a single, well-defined operation.
+This package contains intelligent tools with performance tracking and dynamic selection.
+Tools can learn from usage patterns and provide recommendations for optimal selection.
 """
 from .base import BaseTool
 from .process_receipt import ProcessReceiptTool
 from .extract_text_expense import ExtractTextExpenseTool
 from .save_to_sheets import SaveToSheetsTool
-from .registry import ToolRegistry
+from .registry import AgenticToolRegistry, ToolPerformance, ToolRecommendation
+
+# Backward compatibility exports
+ToolRegistry = AgenticToolRegistry
 
 __all__ = [
+    # Base tool classes
     'BaseTool',
+    
+    # Tool implementations
     'ProcessReceiptTool',
     'ExtractTextExpenseTool',
     'SaveToSheetsTool',
+    
+    # Agentic tool management
+    'AgenticToolRegistry',
+    'ToolPerformance',
+    'ToolRecommendation',
+    
+    # Backward compatibility
     'ToolRegistry'
 ]
